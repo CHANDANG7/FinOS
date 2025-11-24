@@ -1,0 +1,67 @@
+_wandb:
+    value:
+        cli_version: 0.23.0
+        e:
+            fw3frlmjyksvllfcigdf6bgtx0iytscz:
+                codePath: Desktop\project\FinOS\tenali-llm\training\train_instruction.py
+                codePathLocal: training\train_instruction.py
+                cpu_count: 12
+                cpu_count_logical: 16
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "487262777344"
+                        used: "374511321088"
+                email: crchandan45@gmail.com
+                executable: C:\Users\CHANDAN G\anaconda3\python.exe
+                gpu: NVIDIA GeForce RTX 3050 Laptop GPU
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ampere
+                      cudaCores: 2048
+                      memoryTotal: "4294967296"
+                      name: NVIDIA GeForce RTX 3050 Laptop GPU
+                      uuid: GPU-6d7c90fc-cc83-25d6-bc25-c6524d2ada1e
+                host: DESKTOP-CHANDAN
+                memory:
+                    total: "16849293312"
+                os: Windows-11-10.0.26200-SP0
+                program: C:\Users\CHANDAN G\Desktop\project\FinOS\tenali-llm\training\train_instruction.py
+                python: CPython 3.13.5
+                root: C:\Users\CHANDAN G\Desktop\project\FinOS\tenali-llm
+                startedAt: "2025-11-23T17:29:38.751669Z"
+                writerId: fw3frlmjyksvllfcigdf6bgtx0iytscz
+        m: []
+        python_version: 3.13.5
+        t:
+            "1":
+                - 1
+                - 2
+                - 3
+                - 5
+                - 11
+                - 49
+                - 51
+                - 53
+                - 71
+                - 98
+            "2":
+                - 1
+                - 2
+                - 3
+                - 5
+                - 11
+                - 49
+                - 51
+                - 53
+                - 71
+                - 98
+            "3":
+                - 13
+            "4": 3.13.5
+            "5": 0.23.0
+            "6": 4.57.1
+            "8":
+                - 3
+            "12": 0.23.0
+            "13": windows-amd64

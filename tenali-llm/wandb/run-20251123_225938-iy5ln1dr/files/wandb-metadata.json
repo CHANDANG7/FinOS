@@ -1,0 +1,36 @@
+{
+  "os": "Windows-11-10.0.26200-SP0",
+  "python": "CPython 3.13.5",
+  "startedAt": "2025-11-23T17:29:38.751669Z",
+  "program": "C:\\Users\\CHANDAN G\\Desktop\\project\\FinOS\\tenali-llm\\training\\train_instruction.py",
+  "codePath": "Desktop\\project\\FinOS\\tenali-llm\\training\\train_instruction.py",
+  "codePathLocal": "training\\train_instruction.py",
+  "email": "crchandan45@gmail.com",
+  "root": "C:\\Users\\CHANDAN G\\Desktop\\project\\FinOS\\tenali-llm",
+  "host": "DESKTOP-CHANDAN",
+  "executable": "C:\\Users\\CHANDAN G\\anaconda3\\python.exe",
+  "cpu_count": 12,
+  "cpu_count_logical": 16,
+  "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "487262777344",
+      "used": "374511321088"
+    }
+  },
+  "memory": {
+    "total": "16849293312"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce RTX 3050 Laptop GPU",
+      "memoryTotal": "4294967296",
+      "cudaCores": 2048,
+      "architecture": "Ampere",
+      "uuid": "GPU-6d7c90fc-cc83-25d6-bc25-c6524d2ada1e"
+    }
+  ],
+  "cudaVersion": "13.0",
+  "writerId": "fw3frlmjyksvllfcigdf6bgtx0iytscz"
+}
