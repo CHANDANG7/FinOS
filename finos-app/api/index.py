@@ -67,13 +67,60 @@ def get_market_context():
         return result
     except: return market_cache["data"]
 
+# Static Fallback Map (Top Stocks & Crypto)
+STATIC_TICKER_MAP = {
+    # US Tech
+    "APPLE": "AAPL", "MICROSOFT": "MSFT", "GOOGLE": "GOOGL", "AMAZON": "AMZN",
+    "TESLA": "TSLA", "META": "META", "NETFLIX": "NFLX", "NVIDIA": "NVDA",
+    "AMD": "AMD", "INTEL": "INTC", "COINBASE": "COIN",
+    
+    # Crypto
+    "BITCOIN": "BTC-USD", "BTC": "BTC-USD",
+    "ETHEREUM": "ETH-USD", "ETH": "ETH-USD",
+    "SOLANA": "SOL-USD", "SOL": "SOL-USD",
+    "DOGECOIN": "DOGE-USD", "DOGE": "DOGE-USD",
+    "RIPPLE": "XRP-USD", "XRP": "XRP-USD",
+    "CARDANO": "ADA-USD", "ADA": "ADA-USD",
+    "SHIBA": "SHIB-USD", "SHIB": "SHIB-USD",
+    "MATIC": "MATIC-USD", "POLYGON": "MATIC-USD",
+    
+    # NSE Top 50 (Common Names)
+    "RELIANCE": "RELIANCE.NS", "RIL": "RELIANCE.NS",
+    "TCS": "TCS.NS", "TATA CONSULTANCY": "TCS.NS",
+    "HDFC BANK": "HDFCBANK.NS", "HDFC": "HDFCBANK.NS",
+    "INFOSYS": "INFY.NS", "INFY": "INFY.NS",
+    "ICICI": "ICICIBANK.NS", "ICICI BANK": "ICICIBANK.NS",
+    "SBI": "SBIN.NS", "STATE BANK": "SBIN.NS",
+    "BHARTI AIRTEL": "BHARTIARTL.NS", "AIRTEL": "BHARTIARTL.NS",
+    "ITC": "ITC.NS",
+    "KOTAK": "KOTAKBANK.NS", "KOTAK BANK": "KOTAKBANK.NS",
+    "L&T": "LT.NS", "LARSEN": "LT.NS",
+    "AXIS BANK": "AXISBANK.NS", "AXIS": "AXISBANK.NS",
+    "HUL": "HINDUNILVR.NS", "HINDUSTAN UNILEVER": "HINDUNILVR.NS",
+    "TATA MOTORS": "TATAMOTORS.NS",
+    "MARUTI": "MARUTI.NS",
+    "SUN PHARMA": "SUNPHARMA.NS",
+    "ASIAN PAINTS": "ASIANPAINT.NS",
+    "TITAN": "TITAN.NS",
+    "BAJAJ FINANCE": "BAJFINANCE.NS",
+    "ULTRATECH": "ULTRACEMCO.NS",
+    "WIPRO": "WIPRO.NS",
+    "NESTLE": "NESTLEIND.NS",
+    "ZOMATO": "ZOMATO.NS",
+    "PAYTM": "PAYTM.NS",
+    "JIO": "JIOFIN.NS", "JIO FINANCIAL": "JIOFIN.NS",
+    "OLA": "OLAELEC.NS", "OLA ELECTRIC": "OLAELEC.NS"
+}
+
 # Ticker Map
-TICKER_MAP = {}
-TICKER_NAMES = []
+TICKER_MAP = STATIC_TICKER_MAP.copy()
+TICKER_NAMES = list(TICKER_MAP.keys())
 
 def load_ticker_map():
     global TICKER_MAP, TICKER_NAMES
-    if TICKER_MAP: return
+    # If we already have more than static map, skip
+    if len(TICKER_MAP) > len(STATIC_TICKER_MAP): return
+    
     try:
         url = "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv"
         headers = {'User-Agent': 'Mozilla/5.0'}
@@ -82,15 +129,18 @@ def load_ticker_map():
             df = pd.read_csv(io.StringIO(response.text))
             for _, row in df.iterrows():
                 symbol = f"{row['SYMBOL']}.NS"
-                TICKER_MAP[row['NAME OF COMPANY'].upper()] = symbol
+                name = row['NAME OF COMPANY'].upper()
+                # Add exact symbol
                 TICKER_MAP[row['SYMBOL'].upper()] = symbol
+                # Add company name
+                TICKER_MAP[name] = symbol
+                # Add first word of company name (often the common name)
+                first_word = name.split()[0]
+                if len(first_word) > 2 and first_word not in TICKER_MAP:
+                    TICKER_MAP[first_word] = symbol
+                    
             TICKER_NAMES = list(TICKER_MAP.keys())
     except: pass
-
-# Routes
-@app.get("/api/py/hello")
-def hello():
-    return {"message": "Hello from Vercel Python!"}
 
 @app.post("/api/py/quote")
 async def get_quote(request: QuoteRequest):
@@ -99,42 +149,40 @@ async def get_quote(request: QuoteRequest):
         query = request.symbol.upper().strip()
         symbol = query
         
-        # 1. Crypto Handling (Expanded)
-        crypto_map = {
-            "BTC": "BTC-USD", "ETH": "ETH-USD", "SOL": "SOL-USD", "ADA": "ADA-USD",
-            "XRP": "XRP-USD", "DOGE": "DOGE-USD", "SHIB": "SHIB-USD", "MATIC": "MATIC-USD",
-            "DOT": "DOT-USD", "LTC": "LTC-USD", "BNB": "BNB-USD"
-        }
-        if query in crypto_map:
-            symbol = crypto_map[query]
-        
-        # 2. Direct Ticker Check (NSE)
-        elif query in TICKER_MAP:
+        # 1. Check Static/Loaded Map (Exact Match)
+        if query in TICKER_MAP:
             symbol = TICKER_MAP[query]
             
-        # 3. Fuzzy Name Search (NSE)
-        elif len(query) > 2 and TICKER_NAMES:
-            matches = difflib.get_close_matches(query, TICKER_NAMES, n=1, cutoff=0.4)
-            if matches: symbol = TICKER_MAP[matches[0]]
-        
-        # 4. Smart Fallback Logic
+        # 2. Fuzzy/Substring Search
+        else:
+            # Try finding a key that STARTS with query (e.g. "RELI" -> "RELIANCE")
+            # This is faster and often better than fuzzy for partial typing
+            matches = [k for k in TICKER_NAMES if k.startswith(query)]
+            if matches:
+                # Sort by length to get shortest match (likely the most relevant)
+                matches.sort(key=len)
+                symbol = TICKER_MAP[matches[0]]
+            elif len(query) > 2:
+                # Fallback to fuzzy
+                close_matches = difflib.get_close_matches(query, TICKER_NAMES, n=1, cutoff=0.5)
+                if close_matches: symbol = TICKER_MAP[close_matches[0]]
+
+        # 3. Suffix Logic (if not resolved to a .NS/.BO/etc yet)
         if not any(x in symbol for x in [".NS", ".BO", "^", "-", "="]):
-            # If it looks like an Indian ticker (e.g. "RELIANCE"), try NSE first
-            if len(symbol) <= 10 and symbol.isalpha():
-                # Try NSE
+            # If it's a known US ticker pattern (1-4 letters), assume US
+            # But if it was meant to be Indian and not found, try .NS
+            if len(symbol) <= 5 and symbol.isalpha():
+                # Ambiguous. Try US first (no suffix)
                 try:
-                    test_nse = yf.Ticker(f"{symbol}.NS")
-                    if test_nse.fast_info.last_price:
-                        symbol = f"{symbol}.NS"
+                    test_us = yf.Ticker(symbol)
+                    if test_us.fast_info.last_price:
+                        pass # It's valid US
+                    else:
+                        symbol += ".NS" # Fallback to NS
                 except:
-                    # Try BSE
-                    try:
-                        test_bse = yf.Ticker(f"{symbol}.BO")
-                        if test_bse.fast_info.last_price:
-                            symbol = f"{symbol}.BO"
-                    except:
-                        # Assume US Stock
-                        pass
+                     symbol += ".NS"
+            else:
+                symbol += ".NS"
             
         info = yf.Ticker(symbol).fast_info
         price = info.last_price

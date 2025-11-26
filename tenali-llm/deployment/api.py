@@ -261,37 +261,47 @@ async def get_quote(request: QuoteRequest):
         query = request.symbol.upper().strip()
         symbol = query
         
-        # 1. Crypto Handling
-        if query in ["BTC", "ETH", "SOL", "ADA", "XRP", "DOGE"]:
-            symbol = f"{query}-USD"
+        # 1. Crypto Handling (Expanded)
+        crypto_map = {
+            "BTC": "BTC-USD", "ETH": "ETH-USD", "SOL": "SOL-USD", "ADA": "ADA-USD",
+            "XRP": "XRP-USD", "DOGE": "DOGE-USD", "SHIB": "SHIB-USD", "MATIC": "MATIC-USD",
+            "DOT": "DOT-USD", "LTC": "LTC-USD", "BNB": "BNB-USD"
+        }
+        if query in crypto_map:
+            symbol = crypto_map[query]
         
-        # 2. Direct Ticker Check (if user typed "RELIANCE" or exact company name)
+        # 2. Direct Ticker Check (NSE)
         elif query in TICKER_MAP:
             symbol = TICKER_MAP[query]
             
-        # 3. Fuzzy Name Search (if user typed "infosys", "Reliance Ind", etc.)
+        # 3. Fuzzy Name Search (NSE)
         elif len(query) > 2 and TICKER_NAMES:
-            # Try fuzzy matching with lower cutoff for better results
-            matches = difflib.get_close_matches(query, TICKER_NAMES, n=3, cutoff=0.4)
-            if matches:
-                # Pick the best match (first one is closest)
-                best_match = matches[0]
-                symbol = TICKER_MAP[best_match]
-                print(f"Resolved '{request.symbol}' -> '{query}' -> '{symbol}' (matched: {best_match})")
+            matches = difflib.get_close_matches(query, TICKER_NAMES, n=1, cutoff=0.4)
+            if matches: symbol = TICKER_MAP[matches[0]]
         
-        # 4. Fallback Heuristics (if nothing matched, assume it's a ticker)
-        if not symbol.endswith(".NS") and not symbol.endswith(".BO") and "^" not in symbol and "-" not in symbol:
-             if len(symbol) < 10: 
-                symbol += ".NS"
-        
-        stock = yf.Ticker(symbol)
-        info = stock.fast_info
-        
-        # Check if data exists
+        # 4. Smart Fallback Logic
+        if not any(x in symbol for x in [".NS", ".BO", "^", "-", "="]):
+            # If it looks like an Indian ticker (e.g. "RELIANCE"), try NSE first
+            if len(symbol) <= 10 and symbol.isalpha():
+                # Try NSE
+                try:
+                    test_nse = yf.Ticker(f"{symbol}.NS")
+                    if test_nse.fast_info.last_price:
+                        symbol = f"{symbol}.NS"
+                except:
+                    # Try BSE
+                    try:
+                        test_bse = yf.Ticker(f"{symbol}.BO")
+                        if test_bse.fast_info.last_price:
+                            symbol = f"{symbol}.BO"
+                    except:
+                        # Assume US Stock
+                        pass
+            
+        info = yf.Ticker(symbol).fast_info
         price = info.last_price
-        if price is None:
-             raise ValueError("No price data found")
-
+        if price is None: raise ValueError("No price data found")
+        
         prev_close = info.previous_close
         change = price - prev_close
         change_pct = (change / prev_close) * 100
@@ -310,7 +320,6 @@ async def get_quote(request: QuoteRequest):
             "currency": info.currency
         }
     except Exception as e:
-        # print(f"Error fetching {symbol}: {e}") # Optional logging
         raise HTTPException(status_code=404, detail=f"Stock not found: {str(e)}")
 
 def get_oi_analysis(ticker_symbol):
