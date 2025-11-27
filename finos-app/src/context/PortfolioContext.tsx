@@ -101,12 +101,27 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
         setTotalReturnPercent(invest > 0 ? ((value - invest) / invest) * 100 : 0);
     }, [assets]);
 
-    // Initial Load
+    // Load from LocalStorage on Mount
     useEffect(() => {
+        const savedAssets = localStorage.getItem('finos_assets');
+        const savedWatchlist = localStorage.getItem('finos_watchlist');
+
+        if (savedAssets) setAssets(JSON.parse(savedAssets));
+        if (savedWatchlist) setWatchlist(JSON.parse(savedWatchlist));
+
         refreshData();
         const interval = setInterval(refreshData, 60000); // Auto-refresh every minute
         return () => clearInterval(interval);
     }, []);
+
+    // Save to LocalStorage on Change
+    useEffect(() => {
+        localStorage.setItem('finos_assets', JSON.stringify(assets));
+    }, [assets]);
+
+    useEffect(() => {
+        localStorage.setItem('finos_watchlist', JSON.stringify(watchlist));
+    }, [watchlist]);
 
     const addAsset = (newAsset: Asset) => {
         setAssets(prev => [...prev, newAsset]);
